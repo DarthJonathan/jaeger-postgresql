@@ -23,6 +23,9 @@ type Store struct {
 }
 
 func NewStore(conf *Configuration, logger hclog.Logger) (*Store, func() error, error) {
+
+	logger.Debug("Start plugin with configuration : ", conf.Database, conf.Host)
+
 	db := pg.Connect(&pg.Options{
 		Addr:     conf.Host,
 		User:     conf.Username,

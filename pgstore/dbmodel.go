@@ -19,7 +19,7 @@ type SpanRef struct {
 	TraceIDHigh  uint64
 	SourceSpanID model.SpanID
 	ChildSpanID  model.SpanID
-	RefType      model.SpanRefType `sql:",use_zero"`
+	RefType      model.SpanRefType `pg:",use_zero"`
 }
 type Span struct {
 	ID          model.SpanID

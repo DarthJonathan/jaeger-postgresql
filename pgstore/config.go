@@ -1,6 +1,7 @@
 package pgstore
 
 import (
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/spf13/viper"
 )
 
@@ -101,4 +102,11 @@ func (c *Configuration) InitFromViper(v *viper.Viper) {
 	if len(c.Password) == 0 {
 		c.Database = "jaeger"
 	}
+
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:  "jaeger-postgresql",
+		Level: hclog.Debug, // Jaeger only captures >= Warn, so don't bother logging below Warn
+	})
+	logger.Debug("Start plugin with configuration : ", c.Database, c.Host)
+
 }
