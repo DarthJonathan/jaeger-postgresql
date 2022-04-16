@@ -13,6 +13,9 @@ RUN CGO_ENABLED=0 go build -o ./build/jaeger-postgresql ./cmd/jaeger-pg-store/
 ### ---------------------- ###
 FROM debian:buster
 
-WORKDIR /plugin
+COPY --from=builder /app/build/jaeger-postgresql /go/bin/jaeger-postgresql
 
-COPY --from=builder /app/build/jaeger-postgresql /plugin/
+RUN mkdir /plugin
+
+# /plugin/ location is defined in jaeger-operator
+CMD ["cp", "/go/bin/jaeger-postgresql", "/plugin/jaeger-postgresql"]
