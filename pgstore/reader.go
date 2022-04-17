@@ -102,7 +102,7 @@ func buildTraceWhere(query *spanstore.TraceQueryParameters) *whereBuilder {
 		builder.andWhere(query.StartTimeMin, "start_time >= ?")
 	}
 	if query.StartTimeMax.After(time.Time{}) {
-		//TODO builder.andWhere(query.StartTimeMax, "start_time < ?")
+		builder.andWhere(query.StartTimeMax, "start_time < ?")
 	}
 	if query.DurationMin > 0*time.Second {
 		builder.andWhere(query.DurationMin, "duration < ?")
@@ -177,7 +177,7 @@ func (r *Reader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryPa
 		Join("JOIN operations AS operation ON operation.id = span.operation_id").
 		Join("JOIN services AS service ON service.id = span.service_id").
 		ColumnExpr("distinct trace_id_low as Low, trace_id_high as High").
-		Where(builder.where, builder.params...).Limit(100 * limit).Select(&ret)
+		Where(builder.where, builder.params...).Limit(limit).Select(&ret)
 
 	return ret, err
 }
@@ -188,8 +188,8 @@ func (r *Reader) GetDependencies(endTs time.Time, lookback time.Duration) (ret [
 		ColumnExpr("source_spans.service_name as parent").
 		ColumnExpr("child_spans.service_name as child").
 		ColumnExpr("count(*) as call_count").
-		Join("JOIN spans AS source_spans ON source_spans.id = span_ref.source_span_id").
-		Join("JOIN spans AS child_spans ON child_spans.id = span_ref.child_span_id").
+		Join("JOIN spans AS source_spans ON source_spans.span_id = span_ref.source_span_id").
+		Join("JOIN spans AS child_spans ON child_spans.span_id = span_ref.child_span_id").
 		Group("source_spans.service_name").
 		Group("child_spans.service_name").
 		Select(&ret)

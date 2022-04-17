@@ -16,23 +16,31 @@ func (r *whereBuilder) andWhere(param interface{}, where string) {
 }
 
 func toModelSpan(span Span) *model.Span {
-	return &model.Span{
-		SpanID:        span.ID,
-		TraceID:       model.TraceID{Low: span.TraceIDLow, High: span.TraceIDHigh},
-		OperationName: span.Operation.OperationName,
-		Flags:         span.Flags,
-		StartTime:     span.StartTime,
-		Duration:      span.Duration,
-		Tags:          mapToModelKV(span.Tags),
-		ProcessID:     span.ProcessID,
+	model := &model.Span{
+		SpanID:    span.SpanID,
+		TraceID:   model.TraceID{Low: span.TraceIDLow, High: span.TraceIDHigh},
+		Flags:     span.Flags,
+		StartTime: span.StartTime,
+		Duration:  span.Duration,
+		Tags:      mapToModelKV(span.Tags),
+		ProcessID: span.ProcessID,
 		Process: &model.Process{
-			ServiceName: span.Service.ServiceName,
-			Tags:        mapToModelKV(span.ProcessTags),
+			Tags: mapToModelKV(span.ProcessTags),
 		},
 		Warnings:   span.Warnings,
 		References: make([]model.SpanRef, 0),
 		Logs:       make([]model.Log, 0),
 	}
+
+	if span.Operation != nil {
+		model.OperationName = span.Operation.OperationName
+	}
+
+	if span.Service != nil {
+		model.Process.ServiceName = span.Service.ServiceName
+	}
+
+	return model
 }
 
 func mapToModelKV(input map[string]interface{}) []model.KeyValue {

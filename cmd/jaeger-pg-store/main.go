@@ -27,7 +27,7 @@ func main() {
 	conf := pgstore.Configuration{}
 
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "The absolute path to the ClickHouse plugin's configuration file")
+	flag.StringVar(&configPath, "config", "", "The absolute path to the plugin's configuration file")
 	flag.Parse()
 
 	cfgFile, err := ioutil.ReadFile(filepath.Clean(configPath))

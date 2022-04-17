@@ -73,7 +73,7 @@ func (w *Writer) WriteSpan(span *model.Span) error {
 		return err
 	}
 	if _, err := w.db.Model(&Span{
-		ID:          span.SpanID,
+		SpanID:      span.SpanID,
 		TraceIDLow:  span.TraceID.Low,
 		TraceIDHigh: span.TraceID.High,
 		OperationID: operation.ID,

@@ -22,7 +22,8 @@ type SpanRef struct {
 	RefType      model.SpanRefType `pg:",use_zero"`
 }
 type Span struct {
-	ID          model.SpanID
+	ID          uint
+	SpanID      model.SpanID
 	TraceIDLow  uint64
 	TraceIDHigh uint64
 	Operation   *Operation
