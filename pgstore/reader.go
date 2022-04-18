@@ -31,7 +31,7 @@ func NewReader(db *pg.DB, logger hclog.Logger) *Reader {
 
 // GetServices returns all services traced by Jaeger
 func (r *Reader) GetServices(ctx context.Context) ([]string, error) {
-	r.logger.Warn("GetServices called")
+	r.logger.Debug("GetServices called")
 
 	var services []Service
 	err := r.db.Model(&services).Order("service_name ASC").Select()
@@ -62,6 +62,8 @@ func (r *Reader) GetOperations(ctx context.Context, param spanstore.OperationQue
 
 // GetTrace takes a traceID and returns a Trace associated with that traceID
 func (r *Reader) GetTrace(ctx context.Context, traceID model.TraceID) (*model.Trace, error) {
+	r.logger.Debug("GetTrace called for traceId ", traceID.String())
+
 	builder := &whereBuilder{where: "", params: make([]interface{}, 0)}
 
 	if traceID.Low > 0 {
@@ -77,12 +79,17 @@ func (r *Reader) GetTrace(ctx context.Context, traceID model.TraceID) (*model.Tr
 	ret2 := make([]model.Trace_ProcessMapping, 0, len(spans))
 	for _, span := range spans {
 		ret = append(ret, toModelSpan(span))
+		modelProcess := model.Process{
+			Tags: mapToModelKV(span.ProcessTags),
+		}
+
+		if span.Service != nil {
+			modelProcess.ServiceName = span.Service.ServiceName
+		}
+
 		ret2 = append(ret2, model.Trace_ProcessMapping{
 			ProcessID: span.ProcessID,
-			Process: model.Process{
-				ServiceName: span.Service.ServiceName,
-				Tags:        mapToModelKV(span.ProcessTags),
-			},
+			Process:   modelProcess,
 		})
 	}
 
@@ -118,6 +125,8 @@ func buildTraceWhere(query *spanstore.TraceQueryParameters) *whereBuilder {
 
 // FindTraces retrieve traces that match the traceQuery
 func (r *Reader) FindTraces(ctx context.Context, query *spanstore.TraceQueryParameters) ([]*model.Trace, error) {
+	r.logger.Debug("FindTraces called")
+
 	traceIDs, err := r.FindTraceIDs(ctx, query)
 	ret := make([]*model.Trace, 0, len(traceIDs))
 	if err != nil {
@@ -166,6 +175,8 @@ func (r *Reader) FindTraces(ctx context.Context, query *spanstore.TraceQueryPara
 
 // FindTraceIDs retrieve traceIDs that match the traceQuery
 func (r *Reader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryParameters) (ret []model.TraceID, err error) {
+	r.logger.Debug("FindTraceIds called")
+
 	builder := buildTraceWhere(query)
 
 	limit := query.NumTraces
@@ -184,14 +195,32 @@ func (r *Reader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryPa
 
 // GetDependencies returns all inter-service dependencies
 func (r *Reader) GetDependencies(endTs time.Time, lookback time.Duration) (ret []model.DependencyLink, err error) {
+	r.logger.Debug("Get Dependencies called")
+
+	// SQL
+	/**
+	SELECT
+		parent.service_name AS parent,
+		child.service_name AS child,
+		count(*) AS call_count
+	FROM span_refs
+	JOIN spans AS source_spans ON source_spans.span_id = span_refs.source_span_id
+	JOIN spans AS child_spans ON child_spans.span_id = span_refs.child_span_id
+	JOIN services AS parent ON parent.id = source_spans.service_id
+	JOIN services AS child ON child.id = child_spans.service_id
+	GROUP BY parent, child;
+	*/
+
 	err = r.db.Model((*SpanRef)(nil)).
-		ColumnExpr("source_spans.service_name as parent").
-		ColumnExpr("child_spans.service_name as child").
+		ColumnExpr("parent.service_name AS parent").
+		ColumnExpr("child.service_name AS child").
 		ColumnExpr("count(*) as call_count").
-		Join("JOIN spans AS source_spans ON source_spans.span_id = span_ref.source_span_id").
-		Join("JOIN spans AS child_spans ON child_spans.span_id = span_ref.child_span_id").
-		Group("source_spans.service_name").
-		Group("child_spans.service_name").
+		Join("JOIN spans AS source_spans ON source_spans.span_id = span_refs.source_span_id").
+		Join("JOIN spans AS child_spans ON child_spans.span_id = span_refs.child_span_id").
+		Join("JOIN services AS parent ON parent.id = source_spans.service_id").
+		Join("JOIN services AS child ON child.id = child_spans.service_id").
+		Group("parent").
+		Group("child").
 		Select(&ret)
 
 	return ret, err
