@@ -43,7 +43,12 @@ func main() {
 
 	store, closeStore, err = pgstore.NewStore(&conf, logger)
 
-	grpc.Serve(store)
+	pluginService := &shared.PluginServices{
+		Store:        store,
+		ArchiveStore: nil,
+	}
+
+	grpc.Serve(pluginService)
 
 	if err = closeStore(); err != nil {
 		logger.Error("failed to close store", "error", err)

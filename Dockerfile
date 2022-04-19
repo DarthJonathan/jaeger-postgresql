@@ -1,11 +1,12 @@
 ### ---------------------- ###
 # Stage 1 Build the plugin ###
 ### ---------------------- ###
-FROM golang:1.15-buster AS builder
+FROM golang:1.18-buster AS builder
 WORKDIR /app
 
 COPY . ./
 
+RUN go mod vendor
 RUN CGO_ENABLED=0 go build -o ./build/jaeger-postgresql ./cmd/jaeger-pg-store/
 
 ### ---------------------- ###

@@ -1,6 +1,7 @@
 package pgstore
 
 import (
+	"context"
 	"io"
 
 	hclog "github.com/hashicorp/go-hclog"
@@ -57,7 +58,7 @@ func (w *Writer) Close() error {
 }
 
 // WriteSpan saves the span into PostgreSQL
-func (w *Writer) WriteSpan(span *model.Span) error {
+func (w *Writer) WriteSpan(ctx context.Context, span *model.Span) error {
 	service := &Service{
 		ServiceName: span.Process.ServiceName,
 	}

@@ -194,34 +194,22 @@ func (r *Reader) FindTraceIDs(ctx context.Context, query *spanstore.TraceQueryPa
 }
 
 // GetDependencies returns all inter-service dependencies
-func (r *Reader) GetDependencies(endTs time.Time, lookback time.Duration) (ret []model.DependencyLink, err error) {
+func (r *Reader) GetDependencies(ctx context.Context, endTs time.Time, lookback time.Duration) (ret []model.DependencyLink, err error) {
 	r.logger.Debug("Get Dependencies called")
 
 	// SQL
-	/**
-	SELECT
+	query := `SELECT
 		parent.service_name AS parent,
 		child.service_name AS child,
 		count(*) AS call_count
-	FROM span_refs
-	JOIN spans AS source_spans ON source_spans.span_id = span_refs.source_span_id
-	JOIN spans AS child_spans ON child_spans.span_id = span_refs.child_span_id
+	FROM span_refs as refs
+	JOIN spans AS source_spans ON source_spans.span_id = refs.source_span_id
+	JOIN spans AS child_spans ON child_spans.span_id = refs.child_span_id
 	JOIN services AS parent ON parent.id = source_spans.service_id
 	JOIN services AS child ON child.id = child_spans.service_id
-	GROUP BY parent, child;
-	*/
+	GROUP BY parent, child;`
 
-	err = r.db.Model((*SpanRef)(nil)).
-		ColumnExpr("parent.service_name AS parent").
-		ColumnExpr("child.service_name AS child").
-		ColumnExpr("count(*) as call_count").
-		Join("JOIN spans AS source_spans ON source_spans.span_id = span_refs.source_span_id").
-		Join("JOIN spans AS child_spans ON child_spans.span_id = span_refs.child_span_id").
-		Join("JOIN services AS parent ON parent.id = source_spans.service_id").
-		Join("JOIN services AS child ON child.id = child_spans.service_id").
-		Group("parent").
-		Group("child").
-		Select(&ret)
+	_, err = r.db.Query(&ret, query)
 
 	return ret, err
 }
