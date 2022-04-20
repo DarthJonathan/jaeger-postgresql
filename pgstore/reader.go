@@ -211,5 +211,9 @@ func (r *Reader) GetDependencies(ctx context.Context, endTs time.Time, lookback 
 
 	_, err = r.db.Query(&ret, query)
 
+	if err != nil {
+		r.logger.Error("Error in querying dependencies", err)
+	}
+
 	return ret, err
 }
